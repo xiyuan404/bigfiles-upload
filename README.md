@@ -2,7 +2,7 @@
 
 ## preview
 
-![preivew](./preview.gif)
+![preivew](preview.gif)
 
 ## feature
 - [x] 文件预览
