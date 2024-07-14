@@ -91,7 +91,7 @@ async function mergeChunks(filename) {
   await Promise.all(pipes);
 
   // 删除上传文件的分片目录
-  // await fs.rm(chunksDir, { recursive: true });
+  await fs.rm(chunksDir, { recursive: true });
 }
 
 function pipeStream(rs, ws) {
