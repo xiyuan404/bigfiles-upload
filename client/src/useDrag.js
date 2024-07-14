@@ -34,6 +34,22 @@ const useDrag = (uploadContainerRef) => {
     checkSelected(e.dataTransfer.files[0]);
   }, []);
 
+  // 点击上传
+  useEffect(() => {
+    const uploadContainer = uploadContainerRef.current;
+    uploadContainer.addEventListener("click", () => {
+      const fileInput = document.createElement("input");
+      fileInput.type = "file";
+      fileInput.style.display = "none";
+      fileInput.addEventListener("change", (e) => {
+        checkSelected(e.target.files[0]);
+      });
+      document.body.append(fileInput);
+      // 手动触发
+      fileInput.click();
+    });
+  }, []);
+
   useEffect(() => {
     const uploadContainer = uploadContainerRef.current;
     uploadContainer.addEventListener("dragenter", handleDrag);
