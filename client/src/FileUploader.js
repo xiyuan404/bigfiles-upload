@@ -1,41 +1,11 @@
 import { InboxOutlined } from "@ant-design/icons";
-import { Button, message, Progress } from "antd";
-import { useRef, useState } from "react";
+import { Button, message, Progress, Spin } from "antd";
+import { useEffect, useRef, useState } from "react";
 import useDrag from "./useDrag";
 import { CHUNK_SIZE, UploadStatus } from "./constant";
 import axiosInstance from "./axiosInstance";
 import axios from "axios";
 
-const bufferToHex = (hashBuffer) => {
-  return Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString("16").padStart(2, "0"))
-    .join("");
-};
-
-const calculateFileHash = async (file) => {
-  const arrayBuffer = await file.arrayBuffer();
-  const hashBuffer = await crypto.subtle.digest("SHA-256", arrayBuffer);
-  return bufferToHex(hashBuffer);
-};
-
-const getFileName = async (file) => {
-  // 根据文件内容生成哈希，作为文件唯一标识， 防止文件上传过程中丢包（完整性校验）, 以及后续避免重传
-  const fileHash = await calculateFileHash(file);
-  // 取出文件扩展名
-  const fileExtension = file.name.split(".").pop();
-  return `${fileHash}.${fileExtension}`;
-};
-
-// const createChunks = file => {
-//   const chunks = []
-
-//   for (let start = 0; start < file.size; start + CHUNK_SIZE) {
-//     const end = Math.min(start + CHUNK_SIZE, file.size)
-//     chunks.push({ chunk:file.slices(start, end), chunkName: })
-//   }
-
-//   return chunks
-// }
 const createChunks = (file) => {
   const chunks = [];
   const count = Math.ceil(file.size / CHUNK_SIZE); // 分片数
@@ -178,7 +148,13 @@ const FileUploader = () => {
   const [uploadStatus, setUploadStatus] = useState(UploadStatus.NOT_STARTED);
   // 暂停上传tokens
   const [cancelTokens, setCancelTokens] = useState([]);
-
+  // 文件哈希计算移到后台
+  const [filenameWorker, setFilenameWorker] = useState(null);
+  const [isCalculatingFileName, setIsCalculatingFileName] = useState(false);
+  useEffect(() => {
+    const filenameWorker = new Worker("/filenameWorker.js");
+    setFilenameWorker(filenameWorker);
+  }, []);
   const resetAllStatus = () => {
     resetFileStatus();
     setUploadProgress({});
@@ -191,16 +167,21 @@ const FileUploader = () => {
       return;
     }
 
-    const fileName = await getFileName(selectedFile);
-
+    // const fileName = await getFileName(selectedFile);
+    setIsCalculatingFileName(true);
+    filenameWorker.postMessage(selectedFile);
+    filenameWorker.onmessage = async (e) => {
+      const fileName = e.data;
+      setIsCalculatingFileName(false);
+      await uploadFile(
+        selectedFile,
+        fileName,
+        setUploadProgress,
+        resetAllStatus,
+        setCancelTokens,
+      );
+    };
     setUploadStatus(UploadStatus.UPLOADING);
-    await uploadFile(
-      selectedFile,
-      fileName,
-      setUploadProgress,
-      resetAllStatus,
-      setCancelTokens,
-    );
   };
 
   const pauseUpload = () => {
@@ -255,6 +236,11 @@ const FileUploader = () => {
         {renderFilePreview(filePreview)}
       </div>
       {renderButton()}
+      {isCalculatingFileName && (
+        <Spin tip={<span>正在计算文件名...</span>}>
+          <span>正在计算文件名...</span>
+        </Spin>
+      )}
       {renderTotalProgress()}
       {renderProgress()}
     </>
