@@ -94,7 +94,7 @@ async function mergeChunks(filename) {
   const chunksName = await fs.readdir(chunksDir);
   debugger;
 
-  // 去除mac系统生成的文件名
+  // 去除mac系统生成的文件名git l
   // chunksName.filter((chunkNamnpe) => chunkName !== ".DS_Store");
   // 分片升序排列
   chunksName.sort(
