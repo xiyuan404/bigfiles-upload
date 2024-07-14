@@ -5,3 +5,4 @@ export const UploadStatus = {
   PASUED: "PASUED",
   UPLOADING: "UPLOADING",
 };
+export const MAX_RETRIES = 3;

@@ -2,7 +2,7 @@ import { InboxOutlined } from "@ant-design/icons";
 import { Button, message, Progress, Spin } from "antd";
 import { useEffect, useRef, useState } from "react";
 import useDrag from "./useDrag";
-import { CHUNK_SIZE, UploadStatus } from "./constant";
+import { CHUNK_SIZE, UploadStatus, MAX_RETRIES } from "./constant";
 import axiosInstance from "./axiosInstance";
 import axios from "axios";
 
@@ -59,6 +59,7 @@ const uploadFile = async (
   setUploadProgress,
   resetAllStatus,
   setCancelTokens,
+  retryCount = 0,
 ) => {
   const { needUpload, uploadedChunkList } =
     await axiosInstance.get("/verify/:filename");
@@ -132,8 +133,20 @@ const uploadFile = async (
       console.log("上传暂停", error);
       message.success("上传暂停");
     } else {
-      console.log("上传出错", error);
-      message.error("上传出错");
+      if (retryCount < MAX_RETRIES) {
+        console.log("上传出错,重试中...");
+        uploadFile(
+          selectedFile,
+          fileName,
+          setUploadProgress,
+          resetAllStatus,
+          setCancelTokens,
+          retryCount + 1,
+        );
+      } else {
+        console.log("上传出错", error);
+        message.error("上传出错");
+      }
     }
   }
 };
@@ -179,6 +192,7 @@ const FileUploader = () => {
         setUploadProgress,
         resetAllStatus,
         setCancelTokens,
+        0,
       );
     };
     setUploadStatus(UploadStatus.UPLOADING);
